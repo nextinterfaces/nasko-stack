@@ -99,3 +99,5 @@ graph TD
 ```bash
 terraform destroy -auto-approve
 ```
+
+Inspired by https://www.youtube.com/watch?v=S424jkxtEf0, repo: https://github.com/morrismusumi/kubernetes/tree/main/cloud/hetzner
