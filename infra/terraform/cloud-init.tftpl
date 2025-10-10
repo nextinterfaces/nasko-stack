@@ -1,0 +1,42 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+
+packages:
+  - curl
+  - htop
+  - fail2ban
+  - ufw
+
+users:
+  - name: ubuntu
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    ssh_authorized_keys:
+      - ${ssh_pubkey}
+
+write_files:
+  - path: /root/k3s-install.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      swapoff -a || true
+      sed -ri 's/^[^#].*swap/#&/' /etc/fstab || true
+
+      PUB_IP="$(curl -s ifconfig.me || curl -s https://api.ipify.org || hostname -I | awk '{print $1}')"
+
+      curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --write-kubeconfig-mode 0644 --tls-san $${PUB_IP}" sh -
+
+      ufw allow 22 || true
+      ufw allow 6443 || true
+      ufw allow 80 || true
+      ufw allow 443 || true
+      ufw --force enable || true
+
+runcmd:
+  - [ bash, -lc, "/root/k3s-install.sh" ]
+
+final_message: "k3s server is up. kubeconfig at /etc/rancher/k3s/k3s.yaml"
