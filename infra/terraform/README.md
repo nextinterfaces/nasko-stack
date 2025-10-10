@@ -50,13 +50,17 @@ graph TD
 2. **Set environment variables**
    ```bash
    hcloud ssh-key list
-   export TF_VAR_existing_ssh_key_name="hetzner-access"
+   export TF_VAR_existing_ssh_key_name="hetzner-k3s"
    export HCLOUD_TOKEN # "your-hetzner-api-token"
-   export TF_VAR_ssh_public_key_path=~/.ssh/id_ed25519_hetzner.pub
    
+   unset TF_VAR_existing_ssh_key_name
+   export TF_VAR_ssh_public_key_path="~/.ssh/id_ed25519_hetzner.pub"
+   export TF_VAR_ssh_private_key_path="~/.ssh/id_ed25519_hetzner"
+
    echo "${HCLOUD_TOKEN:0:4}****${HCLOUD_TOKEN: -4}"
-   echo $TF_VAR_ssh_public_key_path
    echo $TF_VAR_existing_ssh_key_name
+   echo $TF_VAR_ssh_public_key_path
+   echo $TF_VAR_ssh_private_key_path
    ```
 
 3. **Deploy infrastructure**
@@ -66,7 +70,15 @@ graph TD
    terraform apply -auto-approve
    ```
 
-4. **Validate deployment**
+4. **Connect**
+   ```bash
+    # if the IP had a previous host on it, clear the old known_host entry once:
+   ssh-keygen -R $(terraform output -raw server_public_ip) >/dev/null 2>&1 || true
+   $(terraform output -raw ssh_command)
+   # example: ssh -i ~/.ssh/id_ed25519_hetzner root@5.78.158.102
+   ``` 
+
+5. **Validate deployment**
    ```bash
    $(terraform output -raw kubeconfig_pull_cmd)
    export KUBECONFIG=$PWD/k3s.yaml
@@ -74,7 +86,7 @@ graph TD
    kubectl get pods -A
    ```
 
-5. **Verify idempotence**
+6. **Verify**
    ```bash
    terraform plan -detailed-exitcode
    # expect exit code 0 (no changes). 2 means changes exist; nonzero in CI = fail

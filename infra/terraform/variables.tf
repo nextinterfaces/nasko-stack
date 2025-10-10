@@ -1,13 +1,27 @@
-variable "ssh_public_key_path" {
-  description = "Path to your SSH public key file (set via env TF_VAR_ssh_public_key_path)"
+variable "project" {
+  description = "Project name (env TF_VAR_project)"
   type        = string
 }
 
-# NEW: if set, we will reuse an existing key by this name instead of creating one
+# If set, we reuse this key from Hetzner (no new key is created)
 variable "existing_ssh_key_name" {
-  description = "Name of an existing SSH key in Hetzner to reuse (optional). If empty, Terraform will create a new key from ssh_public_key_path."
+  description = "Name of an existing SSH key in Hetzner to reuse (optional)."
   type        = string
   default     = ""
+}
+
+# If existing_ssh_key_name is empty, we will read this public key file and create/use it
+variable "ssh_public_key_path" {
+  description = "Path to the SSH public key file (env TF_VAR_ssh_public_key_path). Ignored if existing_ssh_key_name is set."
+  type        = string
+  default     = ""
+}
+
+# Not used by Terraform providers; only used to craft SSH/SCP commands in outputs
+variable "ssh_private_key_path" {
+  description = "Path to the SSH private key (local; used in outputs to form SSH/SCP commands)."
+  type        = string
+  default     = "~/.ssh/id_ed25519_hetzner"
 }
 
 variable "server_type" {
@@ -17,9 +31,9 @@ variable "server_type" {
 }
 
 variable "location" {
-  description = "Hetzner location (e.g., fsn1, nbg1, hel1, ash, hil)"
+  description = "Hetzner location (e.g., hil)"
   type        = string
-  default     = "hil"   # US-West (Hillsboro)
+  default     = "hil"
 }
 
 variable "image" {
