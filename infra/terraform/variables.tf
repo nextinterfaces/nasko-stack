@@ -3,6 +3,13 @@ variable "ssh_public_key_path" {
   type        = string
 }
 
+# NEW: if set, we will reuse an existing key by this name instead of creating one
+variable "existing_ssh_key_name" {
+  description = "Name of an existing SSH key in Hetzner to reuse (optional). If empty, Terraform will create a new key from ssh_public_key_path."
+  type        = string
+  default     = ""
+}
+
 variable "server_type" {
   description = "Hetzner server type"
   type        = string

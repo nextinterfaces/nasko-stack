@@ -49,11 +49,14 @@ graph TD
 
 2. **Set environment variables**
    ```bash
+   hcloud ssh-key list
+   export TF_VAR_existing_ssh_key_name="hetzner-access"
    export HCLOUD_TOKEN # "your-hetzner-api-token"
    export TF_VAR_ssh_public_key_path=~/.ssh/id_ed25519_hetzner.pub
-
-   echo $HCLOUD_TOKEN
+   
+   echo "${HCLOUD_TOKEN:0:4}****${HCLOUD_TOKEN: -4}"
    echo $TF_VAR_ssh_public_key_path
+   echo $TF_VAR_existing_ssh_key_name
    ```
 
 3. **Deploy infrastructure**
