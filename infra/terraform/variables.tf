@@ -1,6 +1,7 @@
 variable "project" {
-  description = "Project name (env TF_VAR_project)"
+  description = "Project name"
   type        = string
+  default     = "nasko-stack"
 }
 
 # If set, we reuse this key from Hetzner (no new key is created)
@@ -40,11 +41,5 @@ variable "image" {
   description = "Image slug"
   type        = string
   default     = "ubuntu-24.04"
-}
-
-variable "project" {
-  description = "Project name"
-  type        = string
-  default     = "nasko-stack"
 }
 
