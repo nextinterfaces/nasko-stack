@@ -1,0 +1,83 @@
+# items-service single manifest for manual deploy on k3s (Hetzner)
+# Ingress via Traefik; host uses sslip.io on your node IP: items.5.78.158.102.sslip.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: items-service
+  namespace: default
+  labels:
+    app: items-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: items-service
+  template:
+    metadata:
+      labels:
+        app: items-service
+    spec:
+      containers:
+        - name: items-service
+          image: ghcr.io/nextinterfaces/nasko-stack-items:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /v1/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /v1/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: items-service
+  namespace: default
+  labels:
+    app: items-service
+spec:
+  type: ClusterIP
+  selector:
+    app: items-service
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: items-service
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: items.5.78.158.102.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: items-service
+                port:
+                  number: 80
+  tls: []
