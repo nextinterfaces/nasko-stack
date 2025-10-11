@@ -40,3 +40,4 @@ terraform.rc
 
 set-github-remote.sh
 .idea
+_ignored
