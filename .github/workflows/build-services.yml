@@ -1,0 +1,48 @@
+name: Build Services & Push to GHCR
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/items/**'
+      - 'build-services.yml'
+  workflow_dispatch:
+
+jobs:
+  build-items:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Compute image repo (repo-items)
+        id: meta
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+          echo "image_repo=ghcr.io/${OWNER}/${REPO}-items" >> "$GITHUB_OUTPUT"
+
+      - name: Build & Push items
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/items
+          file: ./services/items/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_repo }}:${{ github.sha }}
+            ${{ steps.meta.outputs.image_repo }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
