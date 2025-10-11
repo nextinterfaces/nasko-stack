@@ -34,14 +34,13 @@ jobs:
       - name: Sanity check paths
         run: |
           pwd && ls -la
-          echo "----"
-          ls -la services/items
+          echo "----"; ls -la services/items
 
       - name: Build & Push items
         uses: docker/build-push-action@v6
         with:
-          context: ./services/items          # <-- important
-          file: ./services/items/Dockerfile  # <-- important
+          context: ./services/items
+          file: ./services/items/Dockerfile
           push: true
           tags: |
             ${{ steps.meta.outputs.image_repo }}:${{ github.sha }}
