@@ -1,4 +1,4 @@
-# items-service single manifest with TLS (Traefik + cert-manager HTTP-01)
+# items-service single manifest (prod TLS) — use after bootstrap completes
 ---
 apiVersion: apps/v1
 kind: Deployment
