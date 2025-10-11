@@ -1,25 +1,21 @@
-name: Build Services & Push to GHCR
+name: Build items service & Push to GHCR
 
 on:
   push:
     branches: [ main ]
     paths:
       - 'services/items/**'
-      - 'build-services.yml'
+      - '.github/workflows/build-items.yml'
   workflow_dispatch:
 
 jobs:
   build-items:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -28,18 +24,24 @@ jobs:
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Compute image repo (repo-items)
+      - name: Compute image repo (items)
         id: meta
         run: |
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           REPO=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
           echo "image_repo=ghcr.io/${OWNER}/${REPO}-items" >> "$GITHUB_OUTPUT"
 
+      - name: Sanity check paths
+        run: |
+          pwd && ls -la
+          echo "----"
+          ls -la services/items
+
       - name: Build & Push items
         uses: docker/build-push-action@v6
         with:
-          context: ./services/items
-          file: ./services/items/Dockerfile
+          context: ./services/items          # <-- important
+          file: ./services/items/Dockerfile  # <-- important
           push: true
           tags: |
             ${{ steps.meta.outputs.image_repo }}:${{ github.sha }}
