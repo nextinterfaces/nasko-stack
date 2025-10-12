@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Items Frontend</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    body { margin: 0; background: #f7f7f8; color: #111; }
+    header { padding: 16px 20px; background: white; box-shadow: 0 1px 0 rgba(0,0,0,.06); position: sticky; top: 0; }
+    main { max-width: 760px; margin: 24px auto; padding: 0 16px 64px; }
+    h1 { margin: 0; font-size: 20px; }
+    .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin: 12px 0; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .row { display: flex; gap: 8px; }
+    input[type="text"] { flex: 1; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; }
+    button { padding: 10px 14px; border: 1px solid #111; background: #111; color: white; border-radius: 10px; font-weight: 600; cursor: pointer; }
+    button.secondary { background: white; color: #111; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid #eee; border-radius: 10px; margin: 8px 0; }
+    .muted { color: #6b7280; }
+    .error { color: #b91c1c; }
+    .ok { color: #065f46; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 6px; }
+    footer { margin-top: 24px; color: #6b7280; font-size: 12px; }
+  </style>
+</head>
+<body>
+<header><h1>Items Frontend</h1></header>
+<main>
+  <section class="card">
+    <div class="row">
+      <input id="name" type="text" placeholder="New item name..." />
+      <button id="add">Add</button>
+      <button id="refresh" class="secondary">Refresh</button>
+    </div>
+    <p id="status" class="muted" style="margin-top:8px;"></p>
+  </section>
+  <section class="card">
+    <h3 style="margin:0 0 10px 0;">Items</h3>
+    <ul id="list"></ul>
+  </section>
+  <footer>
+    <div>API base: <code id="base"></code></div>
+  </footer>
+</main>
+
+<!--<script type="module">-->
+<!--  // The frontend talks to the proxy on the same origin, which forwards to your backend.-->
+<!--  const API_BASE = "/v1";-->
+<!--  document.getElementById("base").textContent = API_BASE;-->
+
+<!--  const elList = document.getElementById("list");-->
+<!--  const elStatus = document.getElementById("status");-->
+<!--  const elName = document.getElementById("name");-->
+
+<!--  function setStatus(text, cls = "muted") {-->
+<!--    elStatus.className = cls;-->
+<!--    elStatus.textContent = text;-->
+<!--  }-->
+
+<!--  async function listItems() {-->
+<!--    setStatus("Loading items…");-->
+<!--    try {-->
+<!--      const res = await fetch(`${API_BASE}/items`);-->
+<!--      if (!res.ok) throw new Error(`HTTP ${res.status}`);-->
+<!--      const data = await res.json();-->
+<!--      elList.innerHTML = "";-->
+<!--      for (const it of data) {-->
+<!--        const li = document.createElement("li");-->
+<!--        li.innerHTML = `-->
+<!--              <span><strong>#${it.id}</strong> — ${it.name}</span>-->
+<!--            `;-->
+<!--        elList.appendChild(li);-->
+<!--      }-->
+<!--      setStatus(`Loaded ${data.length} item(s).`, "ok");-->
+<!--    } catch (err) {-->
+<!--      setStatus("Failed to load items: " + err.message, "error");-->
+<!--    }-->
+<!--  }-->
+
+<!--  async function addItem(name) {-->
+<!--    setStatus("Creating item…");-->
+<!--    try {-->
+<!--      const res = await fetch(`${API_BASE}/items`, {-->
+<!--        method: "POST",-->
+<!--        headers: { "content-type": "application/json" },-->
+<!--        body: JSON.stringify({ name })-->
+<!--      });-->
+<!--      if (!res.ok) {-->
+<!--        const body = await res.json().catch(() => ({}));-->
+<!--        throw new Error(body?.error || ("HTTP " + res.status));-->
+<!--      }-->
+<!--      await listItems();-->
+<!--      setStatus("Item created.", "ok");-->
+<!--    } catch (err) {-->
+<!--      setStatus("Failed to create item: " + err.message, "error");-->
+<!--    }-->
+<!--  }-->
+
+<!--  document.getElementById("add").addEventListener("click", async () => {-->
+<!--    const name = elName.value.trim();-->
+<!--    if (!name) return setStatus("Please enter a name.", "error");-->
+<!--    await addItem(name);-->
+<!--    elName.value = "";-->
+<!--    elName.focus();-->
+<!--  });-->
+
+<!--  document.getElementById("refresh").addEventListener("click", listItems);-->
+
+<!--  // Initial load-->
+<!--  listItems();-->
+<!--</script>-->
+</body>
+</html>
