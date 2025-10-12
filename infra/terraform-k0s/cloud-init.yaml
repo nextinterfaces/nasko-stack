@@ -1,0 +1,72 @@
+
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - curl
+  - wget
+  - apt-transport-https
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - jq
+
+write_files:
+  - path: /usr/local/bin/sslip-hostname
+    permissions: '0755'
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      # Prefer Hetzner metadata for the public IPv4
+      if ip=$(curl -s --connect-timeout 2 http://169.254.169.254/hetzner/v1/metadata | jq -r '.public_ipv4.ip // empty'); then
+        if [[ -n "$ip" && "$ip" != "null" ]]; then
+          echo "$${ip}.sslip.io"
+          exit 0
+        fi
+      fi
+      # Fallback: detect primary IPv4 from the system's default interface and resolve via an external echo
+      ip=$(curl -s https://api.ipify.org)
+      echo "$${ip}.sslip.io"
+
+runcmd:
+  # --- Install k0s ---
+  - curl -sSLf https://get.k0s.sh | sh
+  - k0s install controller --single
+  - systemctl enable k0scontroller && systemctl start k0scontroller
+
+  # Wait for kubeconfig
+  - bash -c 'for i in {1..60}; do k0s kubeconfig admin > /root/.kube/config && break || sleep 5; done'
+  - mkdir -p /root/.kube
+  - k0s kubeconfig admin > /root/.kube/config
+  - chmod 600 /root/.kube/config
+
+  # Provide kubectl by wrapping k0s kubectl (avoids separate install)
+  - bash -c 'cat >/usr/local/bin/kubectl <<\"EOF\"\n#!/usr/bin/env bash\nexec k0s kubectl \"$@\"\nEOF\nchmod +x /usr/local/bin/kubectl'
+
+  # Alias 'k' for kubectl (for root)
+  - bash -c 'echo \"alias k=kubectl\" >> /root/.bashrc'
+
+  # --- Install Helm ---
+  - bash -c 'curl -sSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash'
+
+  # Wait for API to be ready
+  - bash -c 'for i in {1..60}; do kubectl get nodes && break || sleep 5; done'
+
+  # --- Install nginx-ingress ---
+  - helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+  - helm repo update
+  - kubectl create namespace ingress-nginx --dry-run=client -o yaml | kubectl apply -f -
+  - helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx -n ingress-nginx
+
+  # --- Install cert-manager (+ CRDs) ---
+  - kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.crds.yaml
+  - helm repo add jetstack https://charts.jetstack.io
+  - helm repo update
+  - kubectl create namespace cert-manager --dry-run=client -o yaml | kubectl apply -f -
+  - helm upgrade --install cert-manager jetstack/cert-manager -n cert-manager --set installCRDs=false
+
+  # --- ClusterIssuer (Let's Encrypt HTTP-01) ---
+  - bash -c 'cat >/root/cluster-issuer.yaml <<EOF\napiVersion: cert-manager.io/v1\nkind: ClusterIssuer\nmetadata:\n  name: letsencrypt\nspec:\n  acme:\n    email: \"${letsencrypt_email}\"\n    server: https://acme-v02.api.letsencrypt.org/directory\n    privateKeySecretRef:\n      name: letsencrypt-account-key\n    solvers:\n    - http01:\n        ingress:\n          class: nginx\nEOF\nkubectl apply -f /root/cluster-issuer.yaml'
+
+  # --- Info for the user (logged) ---
+  - bash -c 'echo \"Your sslip.io hostname is $(/usr/local/bin/sslip-hostname)\" | tee /root/POST_INSTALL.txt'
