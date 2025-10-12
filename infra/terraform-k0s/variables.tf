@@ -26,3 +26,10 @@ variable "image" {
   type        = string
   default     = "ubuntu-22.04"
 }
+
+
+variable "ssh_private_key_path" {
+  description = "Path to your local SSH private key that matches the uploaded public key"
+  type        = string
+  default     = "~/.ssh/id_rsa"
+}

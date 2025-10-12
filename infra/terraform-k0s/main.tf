@@ -74,4 +74,32 @@ resource "hcloud_server" "k0s" {
   user_data = templatefile("${path.module}/cloud-init.yaml", {
     letsencrypt_email = var.letsencrypt_email
   })
+
+
+provisioner "file" {
+  source      = "${path.module}/setup.sh"
+  destination = "/root/setup.sh"
+
+  connection {
+    type        = "ssh"
+    user        = "root"
+    private_key = file(var.ssh_private_key_path)
+    host        = self.ipv4_address
+  }
+}
+
+provisioner "remote-exec" {
+  inline = [
+    "chmod +x /root/setup.sh",
+    "LETSE=${var.letsencrypt_email} bash -lc 'letsencrypt_email=${var.letsencrypt_email} /root/setup.sh'"
+  ]
+
+  connection {
+    type        = "ssh"
+    user        = "root"
+    private_key = file(var.ssh_private_key_path)
+    host        = self.ipv4_address
+  }
+}
+
 }

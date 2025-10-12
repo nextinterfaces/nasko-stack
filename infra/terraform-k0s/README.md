@@ -33,3 +33,12 @@ Notes:
 - Default `server_type` is **cax11** (ARM, cheapest).
 - If you prefer x86/AMD, set `-var 'server_type=cpx11'` on apply or change the default in `variables.tf`.
 - Both are widely available in Germany locations.
+
+
+## Provisioner fallback (if cloud-init is skipped)
+This project now ships a **remote-exec** fallback that connects over SSH as `root` and installs everything.
+Make sure your matching **private key** is accessible, or override:
+```bash
+terraform apply -auto-approve -var 'ssh_private_key_path=~/.ssh/id_ed25519'
+```
+After provisioning, reconnect (new shell) so the `k` alias loads from `/etc/profile.d/alias-k.sh`.
