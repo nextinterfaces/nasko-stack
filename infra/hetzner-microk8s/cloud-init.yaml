@@ -1,0 +1,115 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+runcmd:
+  - apt-get install -y curl snapd ufw
+
+  # --- microk8s install ---
+  - snap install microk8s --classic --channel=1.30/stable
+  - usermod -aG microk8s ubuntu
+  - mkdir -p /home/ubuntu/.kube
+  - chown -R ubuntu /home/ubuntu/.kube
+  - microk8s status --wait-ready
+  - microk8s enable dns storage helm3 ingress
+
+  # --- cert-manager install ---
+  - microk8s helm3 repo add jetstack https://charts.jetstack.io
+  - microk8s helm3 repo update
+  - microk8s helm3 install cert-manager jetstack/cert-manager \
+      --namespace cert-manager --create-namespace --set installCRDs=true
+
+  # --- create ClusterIssuer ---
+  - cat <<EOF | microk8s kubectl apply -f -
+    apiVersion: cert-manager.io/v1
+    kind: ClusterIssuer
+    metadata:
+      name: letsencrypt-http
+    spec:
+      acme:
+        email: nextinterfaces@gmail.com
+        server: https://acme-v02.api.letsencrypt.org/directory
+        privateKeySecretRef:
+          name: letsencrypt-http-key
+        solvers:
+        - http01:
+            ingress:
+              class: public
+    EOF
+
+  # --- Postgres via Helm ---
+  - microk8s helm3 repo add bitnami https://charts.bitnami.com/bitnami
+  - microk8s helm3 install postgres bitnami/postgresql \
+      --namespace db --create-namespace \
+      --set global.storageClass=microk8s-hostpath \
+      --set persistence.size=5Gi \
+      --set auth.postgresPassword=mysecretpassword
+
+  # --- Sample REST app ---
+  - cat <<EOF | microk8s kubectl apply -f -
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: rest-test
+      labels:
+        app: rest-test
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: rest-test
+      template:
+        metadata:
+          labels:
+            app: rest-test
+        spec:
+          containers:
+          - name: rest-test
+            image: hashicorp/http-echo
+            args:
+              - "-text=Hello from REST test service!"
+              - "-listen=:8080"
+            ports:
+            - containerPort: 8080
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: rest-test
+    spec:
+      selector:
+        app: rest-test
+      ports:
+      - port: 8080
+        targetPort: 8080
+    ---
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: rest-test-ingress
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-http"
+    spec:
+      ingressClassName: public
+      tls:
+      - hosts:
+        - "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4).nip.io"
+        secretName: rest-test-tls
+      rules:
+      - host: "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4).nip.io"
+        http:
+          paths:
+          - path: /test
+            pathType: Prefix
+            backend:
+              service:
+                name: rest-test
+                port:
+                  number: 8080
+    EOF
+
+  # --- firewall ---
+  - ufw allow OpenSSH
+  - ufw allow 80,443/tcp
+  - ufw --force enable
+
