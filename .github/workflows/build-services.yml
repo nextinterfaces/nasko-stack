@@ -5,7 +5,8 @@ on:
     branches: [ main ]
     paths:
       - 'services/**'
-      - '.github/workflows/build-items.yml'
+      - '.github/workflows/build-services.yml'
+
   workflow_dispatch:
 
 permissions:
